@@ -1,13 +1,12 @@
 # Todos:
-# | alias homes to listhomes
-# | actually make listhomes as a chat command too??
+# | make bed home verify a bed is actually next to your bed home spawn location
 # | "are you sure?" step for deleting homes?
 # | Implement moar permissions
 # | maybe: set max homes per group
 # | less bad
 
 # |   _                               _____ _   _ _____
-# |  | |             v 1.0           |  __ \ | | |_   _|
+# |  | |             v 1.1           |  __ \ | | |_   _|
 # |  | |__   ___  _ __ ___   ___  ___| |  \/ | | | | |
 # |  | '_ \ / _ \| '_ ` _ \ / _ \/ __| | __| | | | | |
 # |  | | | | (_) | | | | | |  __/\__ \ |_\ \ |_| |_| |_
@@ -17,35 +16,48 @@
 # @author Ch4rl1e
 # @date 2021/08/07
 # @denizen-build 5677-DEV
-# @script-version 1
+# @script-version 1.1
 
 # ----------------------- Commands
 
 homes_gui_list_command:
     type: command
-    name: homesgui
+    name: homes
     debug: false
-    usage: /homesgui
+    usage: /homes
     description: Opens the GUI to browse your homes, as set with /sethome
-    permission: homesgui.listhomes
+    permission: <script[homes_gui_config].data_key[open_gui_permission]>
     script:
     - if !<player.has_flag[homesgui_page]>:
         - flag <player> homesgui_page:1
     - inventory open d:homes_list_gui
 
+homes_gui_text_command:
+    type: command
+    name: listhomes
+    debug: false
+    usage: /listhomes
+    description: Lists your homes in the chat.
+    permission: <script[homes_gui_config].data_key[open_gui_permission]>
+    script:
+    - define homenames <player.flag[homesgui_homes].keys>
+    - if <player.bed_spawn.exists>:
+        - define homenames:->:bed
+    - narrate "<yellow>Homes: <gold><[homenames].formatted><yellow>."
+
 homes_gui_sethome_command:
     type: command
-    name: sethome2
+    name: sethome
     debug: false
-    usage: /sethome2 (name)
+    usage: /sethome (name)
     description: Set or overwrite a home to your current location.
-    permission: homesgui.sethome
+    permission: <script[homes_gui_config].data_key[create_homes_permission]>
     script:
     # define the name of the home, default to "home" if no name provided
     - if <context.args.size> >= 1:
         - define newhomename <context.args.get[1]>
         - if <[newhomename].to_lowercase> == bed:
-            - narrate "<red>Cannot set a home named 'bed'! This name is reserved for your bed respawn point"
+            - narrate "<red>Cannot set a home named 'bed'! This name is reserved for your bed respawn point."
     - else:
         - define newhomename home
     # fetch the max homes limit from config
@@ -63,11 +75,13 @@ homes_gui_sethome_command:
 
 homes_gui_delhome_command:
     type: command
-    name: delhome2
+    name: delhome
     debug: false
-    usage: /delhome2 (name)
+    usage: /delhome (name)
     description: Deletes a saved home.
-    permissions: <script[homes_gui_config].data_key[delete_homes_permission]>
+    permission: <script[homes_gui_config].data_key[delete_homes_permission]>
+    tab completions:
+        1: <player.flag[homesgui_homes].keys>
     script:
     - if <context.args.size> >= 1:
         - define homename <context.args.get[1]>
@@ -76,7 +90,7 @@ homes_gui_delhome_command:
     - if <player.has_flag[homesgui_homes]>:
         - if <player.flag[homesgui_homes].keys.contains[<[homename]>]>:
             - flag <player> homesgui_homes.<[homename]>:!
-            - narrate "Deleted home <yellow><[homename]><reset>."
+            - narrate "<yellow>Deleted home <gold><[homename]><yellow>."
         - else:
             - narrate "<red>Nothing to delete, have no home named <gold><[homename]><red>!"
     - else:
@@ -84,13 +98,13 @@ homes_gui_delhome_command:
 
 homes_gui_home_command:
     type: command
-    name: home2
+    name: home
     debug: false
-    usage: /home2 (name)
+    usage: /home (name)
     description: teleport home!
-    permissions: <script[homes_gui_config].data_key[home_teleport_permission]>
+    permission: <script[homes_gui_config].data_key[home_teleport_permission]>
     tab completions:
-        1: <player.flag[homesgui_homes].keys.if_null[ ]>
+        1: <player.flag[homesgui_homes].keys>
     script:
     - if <context.args.size> >= 1:
         - define homename <context.args.get[1]>
@@ -98,9 +112,10 @@ homes_gui_home_command:
         - define homename home
     - if <player.has_flag[homesgui_homes]> && <player.flag[homesgui_homes].keys.contains[<[homename]>]>:
         - inject homes_gui_teleport_delay
+        - narrate "<yellow>Teleporting to home <gold><[homename]><yellow>..."
         - teleport <player> <player.flag[homesgui_homes].get[<[homename]>]>
     - else:
-        - narrate "<red>Cannot teleport: You have not set a home named <yellow><[homename]><red>!"
+        - narrate "<red>Cannot teleport: No home named <yellow><[homename]><red>!"
 
 # ------------------------ GUIs
 
@@ -108,7 +123,7 @@ homes_list_gui:
     type: inventory
     debug: false
     inventory: chest
-    title: "<red><bold>Homes Teleport Menu"
+    title: "<bold>Homes Teleport Menu"
     gui: true
     slots:
     - [] [] [] [] [] [] [] [] []
@@ -123,7 +138,7 @@ homes_delete_gui:
     type: inventory
     debug: false
     inventory: chest
-    title: "<red><bold>Homes Delete Menu"
+    title: "<bold>Homes Delete Menu"
     gui: true
     slots:
     - [] [] [] [] [] [] [] [] []
@@ -136,7 +151,7 @@ homes_delete_gui:
 
 homes_gui_list_menu_procedural_task:
     type: task
-    debug: true
+    debug: false
     script:
     - define list <list>
     - define homes <list>
