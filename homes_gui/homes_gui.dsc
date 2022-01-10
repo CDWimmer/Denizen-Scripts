@@ -1,12 +1,5 @@
-# Todos:
-# | make bed home verify a bed is actually next to your bed home spawn location
-# | "are you sure?" step for deleting homes?
-# | Implement moar permissions
-# | maybe: set max homes per group
-# | less bad
-
 # |   _                               _____ _   _ _____
-# |  | |             v 1.1           |  __ \ | | |_   _|
+# |  | |             v 1.2a          |  __ \ | | |_   _|
 # |  | |__   ___  _ __ ___   ___  ___| |  \/ | | | | |
 # |  | '_ \ / _ \| '_ ` _ \ / _ \/ __| | __| | | | | |
 # |  | | | | (_) | | | | | |  __/\__ \ |_\ \ |_| |_| |_
@@ -14,9 +7,15 @@
 # |   the second worst thing to happen to those orphans
 #
 # @author Ch4rl1e
-# @date 2021/08/07
+# @date 2022/01/10
 # @denizen-build 5677-DEV
-# @script-version 1.1
+# @script-version 1.2a
+
+# Todos:
+# ======
+# - "are you sure?" step for deleting homes?
+# - Implement more permissions into the config file rather than here? maybe.
+# - set max homes per group? maybe.
 
 # ----------------------- Commands
 
@@ -26,7 +25,7 @@ homes_gui_list_command:
     debug: false
     usage: /homes
     description: Opens the GUI to browse your homes, as set with /sethome
-    permission: <script[homes_gui_config].data_key[open_gui_permission]>
+    permission: homesgui.homes.list
     script:
     - if !<player.has_flag[homesgui_page]>:
         - flag <player> homesgui_page:1
@@ -38,11 +37,12 @@ homes_gui_text_command:
     debug: false
     usage: /listhomes
     description: Lists your homes in the chat.
-    permission: <script[homes_gui_config].data_key[open_gui_permission]>
+    permission: homesgui.homes.list
     script:
     - define homenames <player.flag[homesgui_homes].keys>
     - if <player.bed_spawn.exists>:
-        - define homenames:->:bed
+        - if <player.bed_spawn.find_blocks[*_bed].within[<script[homes_gui_config].data_key[bed_validation_range]>].size> > 0:
+            - define homenames:->:bed
     - narrate "<yellow>Homes: <gold><[homenames].formatted><yellow>."
 
 homes_gui_sethome_command:
@@ -51,7 +51,7 @@ homes_gui_sethome_command:
     debug: false
     usage: /sethome (name)
     description: Set or overwrite a home to your current location.
-    permission: <script[homes_gui_config].data_key[create_homes_permission]>
+    permission: homesgui.homes.create
     script:
     # define the name of the home, default to "home" if no name provided
     - if <context.args.size> >= 1:
@@ -79,7 +79,7 @@ homes_gui_delhome_command:
     debug: false
     usage: /delhome (name)
     description: Deletes a saved home.
-    permission: <script[homes_gui_config].data_key[delete_homes_permission]>
+    permission: homesgui.homes.delete
     tab completions:
         1: <player.flag[homesgui_homes].keys>
     script:
@@ -102,7 +102,7 @@ homes_gui_home_command:
     debug: false
     usage: /home (name)
     description: teleport home!
-    permission: <script[homes_gui_config].data_key[home_teleport_permission]>
+    permission: homesgui.homes.tp
     tab completions:
         1: <player.flag[homesgui_homes].keys>
     script:
@@ -168,12 +168,14 @@ homes_gui_list_menu_procedural_task:
             - define homes:->:<[item]>
     # generate item for bed spawn in this world, if it exists
     - if <player.bed_spawn.exists>:
-        - define item <item[home_button].with_flag[homeloc:<player.bed_spawn>].with_flag[homename:bed]>
-        - adjust def:item display:<blue>Bed
-        - adjust def:item material:blue_bed
-        - adjust def:item "lore:Click to teleport to your bed in this world!"
-        - define homes:->:<[item]>
-    # == pagination == todo: this could be its own task given its near identical to delete's pagination section
+        - if <player.bed_spawn.find_blocks[*_bed].within[<script[homes_gui_config].data_key[bed_validation_range]>].size> > 0:
+            - define item <item[home_button].with_flag[homeloc:<player.bed_spawn>].with_flag[homename:bed]>
+            - adjust def:item display:<blue>Bed
+            - adjust def:item material:blue_bed
+            - adjust def:item "lore:Click to teleport to your bed in this world!"
+            - define homes:->:<[item]>
+    # == pagination ==
+    # - idea: this could be its own task given its near identical to delete's pagination section
     # create controls row for pages
     - repeat 9:
         - define page_controls:->:<item[blank_black_button]>
@@ -203,7 +205,7 @@ homes_gui_delete_menu_procedural_task:
         # if player has no homes set
         - define homes:->:<item[empty_button]>
     - else:
-        # generate items for all the player's homes, and their bed if it exists
+        # generate items for all the player's homes
         - foreach <player.flag[homesgui_homes]> key:homename as:homelocation:
             - define item <item[home_delete_button].with_flag[homeloc:<[homelocation]>].with_flag[homename:<[homename]>]>
             - define roundlocation <[homelocation].round_to[1]>

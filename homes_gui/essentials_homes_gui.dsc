@@ -1,10 +1,25 @@
+# |                 _                                _____ _    _ _____
+# |                | |                              / ____| |  | |_   _|
+# |    ___  ___ ___| |__   ___  _ __ ___   ___  ___| |  __| |  | | | |
+# |   / _ \/ __/ __| '_ \ / _ \| '_ ` _ \ / _ \/ __| | |_ | |  | | | |
+# |  |  __/\__ \__ \ | | | (_) | | | | | |  __/\__ \ |__| | |__| |_| |_
+# |   \___||___/___/_| |_|\___/|_| |_| |_|\___||___/\_____|\____/|_____|
+# |        homesGUI, except its just a wrapper around Essentials
+
+
+
+
+
+
+
+
 ess_homes_gui_command:
     type: command
     name: esshomesgui
     debug: false
     usage: /esshomesgui
     description: Opens the GUI to browse your Essentials homes, as set with /sethome
-    permission: commands.homes_gui
+    permission: homesgui.essentials.list
     script:
     - inventory open d:ess_homes_gui
 
@@ -15,6 +30,9 @@ ess_homes_gui:
     title: "<red><bold>Homes Teleport Menu"
     gui: true
     slots:
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [] [] [] [] [] []
+    - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] []
     - [] [] [] [] [] [] [] [] [quit_button]
